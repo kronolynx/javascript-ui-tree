@@ -71,3 +71,7 @@ tr.ui-tree-empty {
 li{
     list-style-type: none;
 }
+
+.ui-tree-nodes {
+    padding-left: 20px;
+}

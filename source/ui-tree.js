@@ -1,5 +1,24 @@
 "use strict";
 
+Element.prototype.hasClassName = function(name) {
+    return new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)").test(this.className);
+};
+
+Element.prototype.addClassName = function(name) {
+    if (!this.hasClassName(name)) {
+        this.className = this.className ? [this.className, name].join(' ') : name;
+    }
+    return this;
+};
+
+Element.prototype.removeClassName = function(name) {
+    if (this.hasClassName(name)) {
+        var c = this.className;
+        this.className = c.replace(new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)", "g"), "");
+    }
+    return this;
+};
+
 var generateTreeNode = function(item){
     var li = createDomElement("li", "", "ui-tree-node");
     var div = createDomElement("div", item.id, "tree-node tree-node-content ui-tree-handle");
@@ -130,7 +149,9 @@ var createDomElement = function(_tag, _id, _class, _events) {
 var removeNode = function(element){
     console.log(element.parentElement);
     if(element.parentElement.parentElement.childElementCount === 1){
-        element.parentElement.parentElement.previousElementSibling.firstElementChild.remove();
+        if(element.parentElement.parentElement.previousElementSibling){
+            element.parentElement.parentElement.previousElementSibling.firstElementChild.remove();
+        }     
     }
     element.parentElement.remove()
     displayJson(generateJson("tree-root"));
@@ -139,7 +160,7 @@ var removeNode = function(element){
 var newNode = function(element){
     var Id = (+ element.getAttribute("id")); 
     var nodesLength = element.nextElementSibling.childElementCount; 
-    var newItem =  generateTreeNode({id: Id * 10 + nodesLength, 
+    var newItem =  generateTreeNode({id: Id * 10 + nodesLength + 1, 
                                      title: element.innerText + '.' + (nodesLength + 1 )});
     newItem.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
     element.nextElementSibling.appendChild(newItem);
@@ -149,12 +170,24 @@ var newNode = function(element){
     displayJson(generateJson("tree-root"));
 }
 
+var toggleNode = function(element){
+    if(element.firstElementChild.hasClassName("glyphicon-chevron-down")){
+        element.firstElementChild.removeClassName("glyphicon-chevron-down").addClassName("glyphicon-chevron-right");
+        element.parentElement.nextElementSibling.style.display = "none";
+    }else {
+         element.firstElementChild.removeClassName("glyphicon-chevron-right").addClassName("glyphicon-chevron-down");
+         element.parentElement.nextElementSibling.style.display = "block";
+    }
+}
+
 var displayJson = function(json){
     var test = JSON.stringify(json, null, 2);
     var displayJson = document.getElementsByTagName("code")[0];
     displayJson.innerText = test;
 }
 
+
+// Starting point
 document.addEventListener("DOMContentLoaded", function(event) {
     setUiTree(data);
     displayJson(generateJson("tree-root"));
