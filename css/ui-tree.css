@@ -76,3 +76,8 @@ li{
 .ui-tree-nodes {
     padding-left: 20px;
 }
+
+#tree-end {
+    width: 100%;
+    height:50px;
+}

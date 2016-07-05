@@ -1,4 +1,4 @@
-//"use strict";
+"use strict";
 
 Element.prototype.hasClassName = function(name) {
     return new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)").test(this.className);
@@ -25,11 +25,11 @@ var generateTreeNode = function(item) {
     div.innerText = item.title;
 
     var removeButton = createDomElement("a", "", "pull-right btn btn-danger btn-xs", {
-        onclick: 'removeNode(this.parentElement)'
+        onclick: 'removeTreeNode(this.parentElement);'
     });
     removeButton.appendChild(createDomElement("span", "", "glyphicon glyphicon-remove"));
     var newItem = createDomElement("a", "", "pull-right btn btn-primary btn-xs margin-right8", {
-        onclick: 'newNode(this.parentElement)'
+        onclick: 'newNode(this.parentElement);'
     });
     newItem.appendChild(createDomElement("span", "", "glyphicon glyphicon-plus"));
 
@@ -41,7 +41,7 @@ var generateTreeNode = function(item) {
 
 var insertHtmlArrow = function(li) {
     var arrow = createDomElement("a", "", "btn btn-success btn-xs", {
-        onclick: "toggleNode(this)"
+        onclick: "toggleNode(this);"
     });
     arrow.appendChild(createDomElement("span", "", "glyphicon glyphicon-chevron-down"));
     li.firstElementChild.insertBefore(arrow, li.firstElementChild.childNodes[0]);
@@ -146,14 +146,14 @@ var createDomElement = function(_tag, _id, _class, _events) {
 };
 
 
-var removeNode = function(element) {
-    console.log(element.parentElement);
+var removeTreeNode = function(element) {
     if (element.parentElement.parentElement.childElementCount === 1) {
         if (element.parentElement.parentElement.previousElementSibling) {
-            element.parentElement.parentElement.previousElementSibling.firstElementChild.remove();
+            var firstChild = element.parentElement.parentElement.previousElementSibling.firstElementChild;
+            firstChild.parentNode.removeChild(firstChild);
         }
     }
-    element.parentElement.remove();
+    element.parentElement.parentNode.removeChild(element.parentElement);
     displayJson(generateJson("tree-root"));
 };
 
@@ -169,6 +169,8 @@ var newNode = function(element) {
     if (nodesLength === 0) {
         insertHtmlArrow(element.parentElement);
     }
+    makeDraggable(newItem.firstChild);
+    console.log(newItem);
     displayJson(generateJson("tree-root"));
 };
 
@@ -184,7 +186,7 @@ var toggleNode = function(element) {
 
 var displayJson = function(json) {
     var test = JSON.stringify(json, null, 2);
-    var displayJson = document.getElementsByTagName("code")[0];
+    var displayJson = document.getElementById("json-code");
     displayJson.innerText = test;
 };
 
@@ -202,91 +204,51 @@ document.addEventListener("DOMContentLoaded", function(event) {
 
 /***********************  drag and drop **************************/
     var originalObject = null;
-    var mouseOffset = null;
-    var iMouseDown = false;
-    var lMouseState = false;
     var dragObject = null;
-    var elemOffset = null;
+    var dragObjectParent = null;
+    var treeRootUl = document.getElementById("tree-root");
     var mousePos = {x:0, y:0};
-    // Demo 0 variables
-    var DragDrops = [];
+    var placeHolder = createDomElement("li", "", "ui-tree-placeholder");
     var curTarget = null;
     var lastTarget = null;
+    var appendToEnd = false;
+
     var dragHelper = null;
-    var tempDiv = null;
-    var rootParent = null;
-    var rootSibling = null;
-    Number.prototype.NaN0 = function() {
-        return isNaN(this) ? 0 : this;
-    };
+
+    var dragging = false;
 
     var treeRoot = null;
     var draggables = [];
-    //     treeRoot.onmousemove = mouseMove;
-    //     console.dir(treeRoot);
+    var curOffset;
 
     function mouseCoords(e) {
-//         if (ev.pageX || ev.pageY) {
-//             return {
-//                 x: ev.pageX,
-//                 y: ev.pageY
-//             };
-//         }
-//         return {
-//             x: ev.clientX + document.body.scrollLeft - document.body.clientLeft,
-//             y: ev.clientY + document.body.scrollTop - document.body.clientTop
-//         };
         return {
             x: document.all ? window.event.clientX : e.pageX ,
             y: document.all ? window.event.clientY : e.pageY
         }
     }
 
-    
-
-    var dragObject = null;
-    var mouseOffset = null;
-
-    function getMouseOffset(target, ev) {
-        ev = ev || window.event;
-        var docPos = getPosition(target);
-        var mousePos = mouseCoords(ev);
-        //console.log("offset", docPos, mousePos);
-        return {
-            x: mousePos.x - docPos.x,
-            y: mousePos.y - docPos.y
-        };
-    }
-
-    function getPosition(e) {
-        var left = 0;
-        var top = 0;
-        while (e.offsetParent) {
-            left += e.offsetLeft;
-            top += e.offsetTop;
-            e = e.offsetParent;
-        }
-        left += e.offsetLeft;
-        top += e.offsetTop;
-        return {
-            x: left,
-            y: top
-        };
-    }
-
-
-
     function mouseMove(ev) {
         ev = ev || window.event;
         mousePos = mouseCoords(ev);
-        //x_pos = document.all ? window.event.clientX : ev.pageX;
-        //y_pos = document.all ? window.event.clientY : ev.pageY;
-        if (dragObject) {
-            // console.log("top", mousePos.y - mouseOffset.y, "left" , (mousePos.x - mouseOffset.x), mousePos.x, mousePos.y);
-             //console.log("top", mousePos.y , "left" , (mousePos.x ), mousePos.x, mousePos.y);
-//             console.log("x",mousePos.x - mouseOffset.x);
-//             dragObject.style.top = (mousePos.y - mouseOffset.y) + 'px';
-//             dragObject.style.left = (mousePos.x - mouseOffset.x) + 'px';
+        if (dragging) {
+            curTarget = null;
+            for(var i = 0; i < draggables.length; i++){
+                var bounds = draggables[i].getBoundingClientRect();
+                if ( draggables[i].parentElement !== dragObject &&
+                    (event.clientX >= bounds.left && event.clientX <= bounds.right) &&
+                    (event.clientY >= bounds.top && event.clientY <= bounds.bottom) ) {
+                        curTarget = draggables[i];
+                        break;
+                }
+            }
+            if(!curTarget){
+                var treeEnd =  document.getElementById("tree-end").getBoundingClientRect();
+                appendToEnd = (event.clientX >= treeEnd.left && event.clientX <= treeEnd.right) &&
+                              (event.clientY >= treeEnd.top && event.clientY <= treeEnd.bottom);
+            }
+
+
             dragObject.style.top = (mousePos.y - curOffset.top) + 'px';
             dragObject.style.left = (mousePos.x - curOffset.left) + 'px';
             return false;
@@ -294,65 +256,93 @@ document.addEventListener("DOMContentLoaded", function(event) {
     }
 
     function mouseUp(ev) {
-        ev = ev || window.event;
-        var mousePos = mouseCoords(ev);
-        var found = false;
-        for(var i=0; i < draggables.length; i++){
-            if(draggables[i].parentElement !== dragObject){
-                var curTarget  = draggables[i];
-                var targPos    = getPosition(curTarget);
-                var targWidth  = parseInt(curTarget.offsetWidth);
-                var targHeight = parseInt(curTarget.offsetHeight);
-                if(
-                    (mousePos.x > targPos.x)                &&
-                    (mousePos.x < (targPos.x + targWidth))  &&
-                    (mousePos.y > targPos.y)                &&
-                    (mousePos.y < (targPos.y + targHeight))){
-                        // dragObject was dropped onto curTarget!
-                        console.log("dropped", curTarget);
-                        if(dragObject.parentElement.childNodes.length === 1){
-                            dragObject.parentElement.previousElementSibling.firstElementChild.remove();
-                        }
-                        dragObject.remove()
-                        curTarget.nextSibling.appendChild(originalObject);
-                        if(curTarget.nextSibling.childElementCount === 1){
-                            insertHtmlArrow(curTarget.parentElement);
-                        }
-                        
-                        setDraggables(originalObject);
-                        found = true;
-                        displayJson(generateJson("tree-root"));
+        if(dragging){
+            ev = ev || window.event;
+            var mousePos = mouseCoords(ev);
+            if(curTarget){
+
+                if(dragObject.parentElement.childNodes.length === 1){
+
+                    var firstChild = dragObject.parentElement.previousElementSibling.firstElementChild;
+                    firstChild.parentNode.removeChild(firstChild);
                 }
+
+                dragObject.parentNode.removeChild(dragObject);
+                curTarget.nextSibling.appendChild(originalObject);
+                if(curTarget.nextSibling.childElementCount === 1){
+                    insertHtmlArrow(curTarget.parentElement);
+                }
+                displayJson(generateJson("tree-root"));
+            } else if (appendToEnd){
+                dragObject.parentNode.removeChild(dragObject);
+                treeRootUl.firstChild.appendChild(originalObject);
+            } else {
+                console.log("out", dragObject.parentElement);
+                dragObject.parentNode.removeChild(dragObject);
+                dragObjectParent.appendChild(originalObject);
             }
+            setDraggables(originalObject);
+            dragging = false;
+            dragObject = null;
+        } else {
+            clearTimeout(dragHelper);
         }
-        dragObject = null;
+    }
+
+    function enableDrag(){
+        originalObject = dragObject.cloneNode(true);
+
+        dragObject.style.width = window.getComputedStyle(dragObject, null).width;
+        dragObject.style.zIndex = 9999;
+        dragObject.style.position = 'absolute';
+        dragging = true;
     }
 
     function makeDraggable(item) {
         if (!item) return;
-        item.onmousedown = function(ev) {
-             dragObject = this.parentElement;
-             originalObject = dragObject.cloneNode(true);
-             curOffset = {top: mousePos.y - dragObject.offsetTop, left: mousePos.x - dragObject.offsetTop };
-             dragObject.style.width = window.getComputedStyle(dragObject, null).width;
-             dragObject.style.zIndex = 9999;
-             dragObject.style.position = 'absolute'
-            
-            mouseOffset = getMouseOffset(this, ev);
+        item.onmousedown = function() {
+            dragObject = this.parentElement;
+            dragObjectParent = dragObject.parentElement;
+            curOffset = {top: mousePos.y - dragObject.offsetTop, left: mousePos.x - dragObject.offsetLeft };
+            dragHelper = setTimeout(enableDrag, 200);
             return false;
         };
     }
-    
-//     document.onmousemove = mouseMove;
-//     //document.onmousedown = mouseDown;
-//     document.onmouseup = mouseUp;
+
+    var mouseEnter = function(){
+        if(dragging){
+            curTarget = this;
+
+            placeHolder.style.width = window.getComputedStyle(curTarget, null).width;
+            placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
+            curTarget.nextSibling.appendChild(placeHolder);
+            // TODO create element
+//               placeElm = angular.element($window.document.createElement(tagName));
+//                 tdElm = angular.element($window.document.createElement('td'))
+//                   .addClass(config.placeholderClass)
+//                   .attr('colspan', element[0].children.length);
+//                 placeElm.append(tdElm);
+        }
+    };
+
+    var mouseLeave = function(e){
+        if(dragging){
+            console.log("out", this);
+            //TODO remove placeElm
+            curTarget = null;
+            placeHolder.remove();
+        }
+    };
+
     var setDraggables = function(element){
         var temp = element.getElementsByClassName("ui-tree-handle");
         for (var i = 0; i < temp.length; i++) {
             makeDraggable(temp[i]);
+            //temp[i].addEventListener('mouseenter', mouseEnter);
+            //temp[i].addEventListener('mouseleave', mouseLeave);
         }
         return temp;
-    }
+    };
 
 var dragDrop = function() {
     treeRoot = document.getElementById("tree-root");
