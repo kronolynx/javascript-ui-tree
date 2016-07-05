@@ -1,208 +1,204 @@
 "use strict";
 
-Element.prototype.hasClassName = function(name) {
-    return new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)").test(this.className);
-};
-
-Element.prototype.addClassName = function(name) {
-    if (!this.hasClassName(name)) {
-        this.className = this.className ? [this.className, name].join(' ') : name;
-    }
-    return this;
-};
-
-Element.prototype.removeClassName = function(name) {
-    if (this.hasClassName(name)) {
-        var c = this.className;
-        this.className = c.replace(new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)", "g"), "");
-    }
-    return this;
-};
-
-var generateTreeNode = function(item) {
-    var li = createDomElement("li", "", "ui-tree-node");
-    var div = createDomElement("div", item.id, "tree-node tree-node-content ui-tree-handle");
-    div.innerText = item.title;
-
-    var removeButton = createDomElement("a", "", "pull-right btn btn-danger btn-xs", {
-        onclick: 'removeTreeNode(this.parentElement);'
-    });
-    removeButton.appendChild(createDomElement("span", "", "glyphicon glyphicon-remove"));
-    var newItem = createDomElement("a", "", "pull-right btn btn-primary btn-xs margin-right8", {
-        onclick: 'newNode(this.parentElement);'
-    });
-    newItem.appendChild(createDomElement("span", "", "glyphicon glyphicon-plus"));
-
-    div.appendChild(removeButton);
-    div.appendChild(newItem);
-    li.appendChild(div);
-    return li;
-};
-
-var insertHtmlArrow = function(li) {
-    var arrow = createDomElement("a", "", "btn btn-success btn-xs", {
-        onclick: "toggleNode(this);"
-    });
-    arrow.appendChild(createDomElement("span", "", "glyphicon glyphicon-chevron-down"));
-    li.firstElementChild.insertBefore(arrow, li.firstElementChild.childNodes[0]);
-};
-
-var generateHtmlTree = function(array) {
-    var ol = createDomElement("ul", "", "ui-tree-nodes");
-    array.forEach(function(item) {
-        var li = generateTreeNode(item);
-        if (typeof item.items === "object") {
-            if (item.items.length > 0) {
-                insertHtmlArrow(li);
-                li.appendChild(generateHtmlTree(item.items));
-            } else {
-                li.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
-            }
-        }
-        ol.appendChild(li);
-    });
-    return ol;
-};
-
-/**
- * Generates a json tree from an html node
- * @param   html node
- * @return json array
- */
-var generateJsonTree = function(node) {
-    if (!node) {
-        return [];
-    }
-    node = node.firstElementChild;
-
-    var jsonArr = [];
-    while (node) {
-        if (node.tagName.toLowerCase() === "div") {
-            var json;
-            json = {
-                id: (+node.getAttribute("id")),
-                title: node.innerText
-            };
-            json.items = generateJsonTree(node.nextElementSibling);
-            jsonArr.push(json);
-            return jsonArr;
-        } else {
-            // add all the chilNodes to the array
-            [].push.apply(jsonArr, generateJsonTree(node));
-        }
-
-        node = node.nextElementSibling;
-    }
-    return jsonArr;
-};
-
-/**
- * Generate the json from an html ID,
- * @param  html element ID
- * @return Json Array
- */
-var generateJson = function(id) {
-    return {
-        id: 1,
-        items: generateJsonTree(document.getElementById(id))
+var moduleUiTree = function(dataJson){
+    Element.prototype.hasClassName = function(name) {
+        return new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)").test(this.className);
     };
-};
 
-/**
- * set the HTML tree from a json tree
- * @param  json tree
- */
-var setUiTree = function(json) {
-    var root = document.getElementById("tree-root");
-    root.innerHTML = "";
-    var tree = generateHtmlTree(json.items);
-    root.appendChild(tree);
-};
+    Element.prototype.addClassName = function(name) {
+        if (!this.hasClassName(name)) {
+            this.className = this.className ? [this.className, name].join(' ') : name;
+        }
+        return this;
+    };
 
-/**
- * Generate DOM element
- * @param   _tag    tagname
- * @param   [_id]     element id
- * @param   [_class]  string with the classes
- * @param   [_events] json with the events or attributes to add e.g: {onclick : "alert("click")", data-somedata: "some data"}
- * @return html element
- */
-var createDomElement = function(_tag, _id, _class, _events) {
-    var element = document.createElement(_tag);
-    if (_id) {
-        element.setAttribute("id", _id);
-    }
-    if (_class) {
-        element.setAttribute("class", _class);
-    }
-    if (_events) {
-        for (var key in _events) {
-            if (_events.hasOwnProperty(key)) {
-                element.setAttribute(key, _events[key]);
+    Element.prototype.removeClassName = function(name) {
+        if (this.hasClassName(name)) {
+            var c = this.className;
+            this.className = c.replace(new RegExp("(?:^|\\s+)" + name + "(?:\\s+|$)", "g"), "");
+        }
+        return this;
+    };
+
+
+    var removeTreeNode = function() {
+        var node = this.parentElement.parentElement.parentElement;
+        if (node.childElementCount === 1) {
+            if (node.previousElementSibling) {
+                var firstChild = node.previousElementSibling.firstElementChild;
+                firstChild.parentNode.removeChild(firstChild);
             }
         }
-    }
-    return element;
-};
+        this.parentElement.parentElement.parentNode.removeChild(this.parentElement.parentElement);
+        // the next line can be removed as it's to display the json
+        displayJson(generateJson("tree-root"));
+    };
 
 
-var removeTreeNode = function(element) {
-    if (element.parentElement.parentElement.childElementCount === 1) {
-        if (element.parentElement.parentElement.previousElementSibling) {
-            var firstChild = element.parentElement.parentElement.previousElementSibling.firstElementChild;
-            firstChild.parentNode.removeChild(firstChild);
+
+    var newNode = function() {
+        var element = this.parentElement;
+        var Id = (+element.getAttribute("id"));
+        var nodesLength = element.nextElementSibling.childElementCount;
+        var newItem = generateTreeNode({
+            id: Id * 10 + nodesLength + 1,
+            title: element.innerText + '.' + (nodesLength + 1)
+        });
+        newItem.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
+        element.nextElementSibling.appendChild(newItem);
+        if (nodesLength === 0) {
+            insertHtmlArrow(element.parentElement);
         }
-    }
-    element.parentElement.parentNode.removeChild(element.parentElement);
-    displayJson(generateJson("tree-root"));
-};
+        makeDraggable(newItem.firstChild);
+        displayJson(generateJson("tree-root"));
+    };
 
-var newNode = function(element) {
-    var Id = (+element.getAttribute("id"));
-    var nodesLength = element.nextElementSibling.childElementCount;
-    var newItem = generateTreeNode({
-        id: Id * 10 + nodesLength + 1,
-        title: element.innerText + '.' + (nodesLength + 1)
-    });
-    newItem.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
-    element.nextElementSibling.appendChild(newItem);
-    if (nodesLength === 0) {
-        insertHtmlArrow(element.parentElement);
-    }
-    makeDraggable(newItem.firstChild);
-    console.log(newItem);
-    displayJson(generateJson("tree-root"));
-};
-
-var toggleNode = function(element) {
-    if (element.firstElementChild.hasClassName("glyphicon-chevron-down")) {
-        element.firstElementChild.removeClassName("glyphicon-chevron-down").addClassName("glyphicon-chevron-right");
-        element.parentElement.nextElementSibling.style.display = "none";
-    } else {
-        element.firstElementChild.removeClassName("glyphicon-chevron-right").addClassName("glyphicon-chevron-down");
-        element.parentElement.nextElementSibling.style.display = "block";
-    }
-};
-
-var displayJson = function(json) {
-    var test = JSON.stringify(json, null, 2);
-    var displayJson = document.getElementById("json-code");
-    displayJson.innerText = test;
-};
+    var toggleNode = function() {
+        if (this.firstElementChild.hasClassName("glyphicon-chevron-down")) {
+            this.firstElementChild.removeClassName("glyphicon-chevron-down").addClassName("glyphicon-chevron-right");
+            this.parentElement.nextElementSibling.style.display = "none";
+        } else {
+            this.firstElementChild.removeClassName("glyphicon-chevron-right").addClassName("glyphicon-chevron-down");
+            this.parentElement.nextElementSibling.style.display = "block";
+        }
+    };
 
 
-// Starting point
-document.addEventListener("DOMContentLoaded", function(event) {
-    setUiTree(data);
-    displayJson(generateJson("tree-root"));
-    dragDrop();
-});
+    var generateTreeNode = function(item) {
+        var li = createDomElement("li", "", "ui-tree-node");
+        var div = createDomElement("div", item.id, "tree-node tree-node-content ui-tree-handle");
+
+        var span = createDomElement("span", "", "text-edit");
+        span.innerText = item.title;
+        span.setAttribute("contenteditable", true);
+        div.appendChild(span);
 
 
+        var removeButton = createDomElement("a", "", "pull-right btn btn-danger btn-xs remove-btn");
+        removeButton.addEventListener("click", removeTreeNode);
+        removeButton.appendChild(createDomElement("span", "", "glyphicon glyphicon-remove"));
+
+        var newItem = createDomElement("a", "", "pull-right btn btn-primary btn-xs margin-right8 new-item-btn");
+        newItem.addEventListener("click", newNode);
+        newItem.appendChild(createDomElement("span", "", "glyphicon glyphicon-plus"));
+
+        div.appendChild(removeButton);
+        div.appendChild(newItem);
+        li.appendChild(div);
+        return li;
+    };
+
+    var insertHtmlArrow = function(li) {
+        var arrow = createDomElement("a", "", "btn btn-success btn-xs toogle-btn");
+        arrow.addEventListener("click", toggleNode);
+        arrow.appendChild(createDomElement("span", "", "glyphicon glyphicon-chevron-down"));
+        li.firstElementChild.insertBefore(arrow, li.firstElementChild.childNodes[0]);
+    };
+
+    /**
+     * Generate an HTML tree
+     * @param array json that has a title, id and and array of items
+     */
+    var generateHtmlTree = function(array) {
+        var ol = createDomElement("ul", "", "ui-tree-nodes");
+        array.forEach(function(item) {
+            var li = generateTreeNode(item);
+            if (typeof item.items === "object") {
+                if (item.items.length > 0) {
+                    insertHtmlArrow(li);
+                    li.appendChild(generateHtmlTree(item.items));
+                } else {
+                    li.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
+                }
+            }
+            ol.appendChild(li);
+        });
+        return ol;
+    };
+
+    /**
+     * Generates a json tree from an html node
+     * @param   html node
+     * @return json array
+     */
+    var generateJsonTree = function(node) {
+        if (!node) {
+            return [];
+        }
+        node = node.firstElementChild;
+
+        var jsonArr = [];
+        while (node) {
+            if (node.tagName.toLowerCase() === "div") {
+                var json;
+                json = {
+                    id: (+node.getAttribute("id")),
+                    title: node.getElementsByClassName('text-edit')[0].innerText
+                };
+                json.items = generateJsonTree(node.nextElementSibling);
+                jsonArr.push(json);
+                return jsonArr;
+            } else {
+                // add all the chilNodes to the array
+                [].push.apply(jsonArr, generateJsonTree(node));
+            }
+
+            node = node.nextElementSibling;
+        }
+        return jsonArr;
+    };
+
+    /**
+     * Generate the json from an html ID,
+     * @param  html element ID
+     * @return Json Array
+     */
+    var generateJson = function(id) {
+        return {
+            id: 1,
+            items: generateJsonTree(document.getElementById(id))
+        };
+    };
+
+    /**
+     * set the HTML tree from a json tree
+     * @param  json tree
+     */
+    var setUiTree = function(json) {
+        var root = document.getElementById("tree-root");
+        root.innerHTML = "";
+        var tree = generateHtmlTree(json.items);
+        root.appendChild(tree);
+    };
+
+    /**
+     * Generate DOM element
+     * @param   _tag    tagname
+     * @param   [_id]     element id
+     * @param   [_class]  string with the classes
+     * @param   [_events] json with the events or attributes to add e.g: {onclick : "alert("click")", data-somedata: "some data"}
+     * @return html element
+     */
+    var createDomElement = function(_tag, _id, _class, _events) {
+        var element = document.createElement(_tag);
+        if (_id) {
+            element.setAttribute("id", _id);
+        }
+        if (_class) {
+            element.setAttribute("class", _class);
+        }
+        if (_events) {
+            for (var key in _events) {
+                if (_events.hasOwnProperty(key)) {
+                    element.setAttribute(key, _events[key]);
+                }
+            }
+        }
+        return element;
+    };
 
 
-
-/***********************  drag and drop **************************/
+    /***********************  drag and drop **************************/
     var originalObject = null;
     var dragObject = null;
     var dragObjectParent = null;
@@ -221,14 +217,14 @@ document.addEventListener("DOMContentLoaded", function(event) {
     var draggables = [];
     var curOffset;
 
-    function mouseCoords(e) {
+    var mouseCoords = function(e) {
         return {
             x: document.all ? window.event.clientX : e.pageX ,
             y: document.all ? window.event.clientY : e.pageY
         }
     }
 
-    function mouseMove(ev) {
+    var mouseMove = function(ev) {
         ev = ev || window.event;
         mousePos = mouseCoords(ev);
         if (dragging) {
@@ -254,13 +250,28 @@ document.addEventListener("DOMContentLoaded", function(event) {
             return false;
         }
     }
+    
+    var resetlisteners = function(_element, _class, _event, _fn){
+        var temp = _element.getElementsByClassName(_class);
+        for(var i = 0; i < temp.length; i++){
+            temp[i].addEventListener(_event, _fn);
+        }
+        return temp;
+    }
 
-    function mouseUp(ev) {
+    var resetButtonListeners = function(element){
+        resetlisteners(element, 'remove-btn', 'click', removeTreeNode);
+        resetlisteners(element, 'new-item-btn', 'click',newNode);
+        resetlisteners(element, 'toogle-btn', 'click',toggleNode);
+    }
+        
+
+    var mouseUp = function(ev) {
         if(dragging){
             ev = ev || window.event;
             var mousePos = mouseCoords(ev);
             if(curTarget){
-
+                resetButtonListeners(originalObject);
                 if(dragObject.parentElement.childNodes.length === 1){
 
                     var firstChild = dragObject.parentElement.previousElementSibling.firstElementChild;
@@ -289,7 +300,7 @@ document.addEventListener("DOMContentLoaded", function(event) {
         }
     }
 
-    function enableDrag(){
+    var enableDrag = function(){
         originalObject = dragObject.cloneNode(true);
 
         dragObject.style.width = window.getComputedStyle(dragObject, null).width;
@@ -298,14 +309,14 @@ document.addEventListener("DOMContentLoaded", function(event) {
         dragging = true;
     }
 
-    function makeDraggable(item) {
+    var makeDraggable = function (item) {
         if (!item) return;
         item.onmousedown = function() {
             dragObject = this.parentElement;
             dragObjectParent = dragObject.parentElement;
             curOffset = {top: mousePos.y - dragObject.offsetTop, left: mousePos.x - dragObject.offsetLeft };
             dragHelper = setTimeout(enableDrag, 200);
-            return false;
+            //return false;
         };
     }
 
@@ -316,18 +327,17 @@ document.addEventListener("DOMContentLoaded", function(event) {
             placeHolder.style.width = window.getComputedStyle(curTarget, null).width;
             placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
             curTarget.nextSibling.appendChild(placeHolder);
-            // TODO create element
-//               placeElm = angular.element($window.document.createElement(tagName));
-//                 tdElm = angular.element($window.document.createElement('td'))
-//                   .addClass(config.placeholderClass)
-//                   .attr('colspan', element[0].children.length);
-//                 placeElm.append(tdElm);
+            // TODO create placeholder element
+    //               placeElm = angular.element($window.document.createElement(tagName));
+    //                 tdElm = angular.element($window.document.createElement('td'))
+    //                   .addClass(config.placeholderClass)
+    //                   .attr('colspan', element[0].children.length);
+    //                 placeElm.append(tdElm);
         }
     };
 
     var mouseLeave = function(e){
         if(dragging){
-            console.log("out", this);
             //TODO remove placeElm
             curTarget = null;
             placeHolder.remove();
@@ -344,13 +354,49 @@ document.addEventListener("DOMContentLoaded", function(event) {
         return temp;
     };
 
-var dragDrop = function() {
-    treeRoot = document.getElementById("tree-root");
-    window.onmousemove = mouseMove;
-    window.onmouseup = mouseUp;
-    draggables  = setDraggables(treeRoot);
+    var dragDrop = function() {
+        treeRoot = document.getElementById("tree-root");
+        window.onmousemove = mouseMove;
+        window.onmouseup = mouseUp;
+        draggables  = setDraggables(treeRoot);
+    };
+
+    var displayJson = function(json) {
+        var test = JSON.stringify(json, null, 2);
+        var displayJson = document.getElementById("json-code");
+        displayJson.innerText = test;
+    };
+
+     
+     var getJson = function(){
+        return generateJson("tree-root")
+     }
+
+     var initUiTree = function(json){
+         setUiTree(json);
+         dragDrop();
+         // the next line can be removed 
+         displayJson(getJson());
+     }
+
+     if(dataJson){
+         initUiTree(dataJson);
+     }
+
+    return {
+        setData: initUiTree,
+        getData: getJson
+    }
 };
 
+//********************************************//
+
+
+// Starting point
+document.addEventListener("DOMContentLoaded", function(event) {   
+    var tree = moduleUiTree(data);
+    console.log(tree.getData());
+});
 
 
 
