@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var moduleUiTree = function(dataJson){
     Element.prototype.hasClassName = function(name) {
@@ -69,8 +69,8 @@ var moduleUiTree = function(dataJson){
     var getInputText = function(){
         var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'') || this.getAttribute("data-old-text");
         this.parentElement.innerHTML = text;
-        //this.parentElement.innerText = text;
-        console.log(text);
+        // the next line can be removed as it's to display the json
+        displayJson(generateJson("tree-root"));
     }
 
     var getInputTextOnEnter = function(e){
@@ -81,6 +81,8 @@ var moduleUiTree = function(dataJson){
             this.removeEventListener("blur", getInputText);
             this.parentElement.innerHTML = text;
         }
+        // the next line can be removed as it's to display the json
+        displayJson(generateJson("tree-root"));
     }
 
     var nodeEditText = function(){
@@ -298,7 +300,6 @@ var moduleUiTree = function(dataJson){
                  var rootRect = treeRoot.getBoundingClientRect();
                  if (event.clientX >= rootRect.left && event.clientX <= rootRect.right){
                      var offSetPlaceHolder = placeHolder.parentElement ? parseInt(placeHolder.style.height) : 0;
-                     console.log(event.clientY , offSetPlaceHolder,  rootRect.top ,event.clientY - offSetPlaceHolder)
                      appendToEnd = (event.clientY + offSetPlaceHolder >= rootRect.bottom   && event.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
 
 
@@ -315,11 +316,8 @@ var moduleUiTree = function(dataJson){
             if(curTarget || (appendToEnd || appendToTop) && !placeHolder.parentElement){
                 addPlaceHolder();
             }
-            
-
             dragObject.style.top = (mousePos.y - curOffset.top) + 'px';
             dragObject.style.left = (mousePos.x - curOffset.left) + 'px';
-            console.log(appendToEnd);
             return false;
         }
     }
@@ -346,18 +344,21 @@ var moduleUiTree = function(dataJson){
             if(placeHolder.parentElement){
                 removePlaceHolder();
             }
-            console.log(!appendToEnd);
-            if(curTarget && curTarget !== dragObject.parentElement.previousElementSibling){ 
+            if(curTarget && curTarget !== dragObject.parentElement.previousElementSibling){      
                 curTarget.nextSibling.appendChild(originalObject);
                 if(curTarget.nextSibling.childElementCount === 1){
                     insertHtmlArrow(curTarget.parentElement);
-                }             
+                }                                      
             } else if (appendToEnd){
                 treeRoot.firstChild.appendChild(originalObject);
             } else if (appendToTop){
                 treeRoot.firstChild.insertBefore(originalObject, treeRoot.firstChild.firstElementChild);
             } else {
-                dragObjectParent.appendChild(originalObject);
+                if(nextSibling){
+                    dragObjectParent.insertBefore(originalObject, nextSibling);
+                } else {
+                    dragObjectParent.appendChild(originalObject);
+                }
             }
             if(dragObject.parentElement.parentElement !== treeRoot && dragObject.parentElement.childNodes.length === 1){
                 var firstChild = dragObject.parentElement.previousElementSibling.firstElementChild;
@@ -380,6 +381,7 @@ var moduleUiTree = function(dataJson){
     var enableDrag = function(){
         if(dragObject){
             originalObject = dragObject.cloneNode(true);
+            nextSibling = dragObject.nextElementSibling;
             dragObject.style.width = window.getComputedStyle(dragObject, null).width;
             dragObject.style.zIndex = 9999;
             dragObject.style.position = 'absolute';
