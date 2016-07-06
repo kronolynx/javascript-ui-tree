@@ -66,6 +66,34 @@ var moduleUiTree = function(dataJson){
         }
     };
 
+    var getInputText = function(){
+        var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'') || this.getAttribute("data-old-text");
+        this.parentElement.innerHTML = text;
+        //this.parentElement.innerText = text;
+        console.log(text);
+    }
+
+    var getInputTextOnEnter = function(e){
+        var key = e.which || e.keyCode;
+
+        if (key === 13) { 
+            var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'') || this.getAttribute("data-old-text");
+            this.removeEventListener("blur", getInputText);
+            this.parentElement.innerHTML = text;
+        }
+    }
+
+    var nodeEditText = function(){
+        var text = this.innerText;
+        this.innerHTML = "";
+        var input = createDomElement("input", "", "", {type: "text", value: text});
+        input.addEventListener("blur", getInputText);
+        input.addEventListener("keypress", getInputTextOnEnter);
+        input.setAttribute("data-old-text", text);
+        
+        this.appendChild(input);
+    };
+
 
     var generateTreeNode = function(item) {
         var li = createDomElement("li", "", "ui-tree-node");
@@ -74,7 +102,8 @@ var moduleUiTree = function(dataJson){
         var span = createDomElement("span", "", "text-edit");
         span.innerText = item.title;
         // TODO remove contentEditable and validate text only one line
-        span.setAttribute("contenteditable", true);
+        //span.setAttribute("contenteditable", true);
+        span.addEventListener('dblclick', nodeEditText);
         div.appendChild(span);
 
 
@@ -232,10 +261,8 @@ var moduleUiTree = function(dataJson){
         draggables = treeRoot.getElementsByClassName("ui-tree-handle");
     }
 
-    var addPlaceHolder = function(){        
-        
+    var addPlaceHolder = function(){            
         placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
- //       console.log(placeHolder.parentElement);
         if(appendToEnd){
             window.getComputedStyle(treeRoot.firstElementChild, null).width;
             treeRoot.firstChild.appendChild(placeHolder);
@@ -250,8 +277,7 @@ var moduleUiTree = function(dataJson){
     };
 
     var removePlaceHolder = function(){
-            //TODO remove placeElm
-            placeHolder.parentElement.removeChild(placeHolder);
+        placeHolder.parentElement.removeChild(placeHolder);
     };
 
     var mouseMove = function(ev) {
@@ -310,6 +336,7 @@ var moduleUiTree = function(dataJson){
         resetlisteners(element, 'remove-btn', 'click', removeTreeNode);
         resetlisteners(element, 'new-item-btn', 'click',newNode);
         resetlisteners(element, 'toogle-btn', 'click',toggleNode);
+        resetlisteners(element, 'text-edit', 'dblclick', nodeEditText);
     }
         
     var mouseUp = function(ev) {
