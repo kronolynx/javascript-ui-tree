@@ -30,6 +30,7 @@ var moduleUiTree = function(dataJson){
             }
         }
         this.parentElement.parentElement.parentNode.removeChild(this.parentElement.parentElement);
+        resetDraggables();
         // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
     };
@@ -50,6 +51,8 @@ var moduleUiTree = function(dataJson){
             insertHtmlArrow(element.parentElement);
         }
         makeDraggable(newItem.firstChild);
+        resetDraggables();
+        
         displayJson(generateJson("tree-root"));
     };
 
@@ -70,6 +73,7 @@ var moduleUiTree = function(dataJson){
 
         var span = createDomElement("span", "", "text-edit");
         span.innerText = item.title;
+        // TODO remove contentEditable and validate text only one line
         span.setAttribute("contenteditable", true);
         div.appendChild(span);
 
@@ -103,14 +107,14 @@ var moduleUiTree = function(dataJson){
         var ol = createDomElement("ul", "", "ui-tree-nodes");
         array.forEach(function(item) {
             var li = generateTreeNode(item);
-            if (typeof item.items === "object") {
-                if (item.items.length > 0) {
-                    insertHtmlArrow(li);
-                    li.appendChild(generateHtmlTree(item.items));
-                } else {
-                    li.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
-                }
+            
+            if (typeof item.items === "object" && item.items.length > 0) {
+                insertHtmlArrow(li);
+                li.appendChild(generateHtmlTree(item.items));
+            } else {
+                li.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
             }
+            
             ol.appendChild(li);
         });
         return ol;
@@ -202,20 +206,20 @@ var moduleUiTree = function(dataJson){
     var originalObject = null;
     var dragObject = null;
     var dragObjectParent = null;
-    var treeRootUl = document.getElementById("tree-root");
+    var treeRoot = document.getElementById("tree-root");
     var mousePos = {x:0, y:0};
     var placeHolder = createDomElement("li", "", "ui-tree-placeholder");
     var curTarget = null;
     var lastTarget = null;
     var appendToEnd = false;
-
+    var appendToTop = false;
     var dragHelper = null;
-
     var dragging = false;
-
-    var treeRoot = null;
     var draggables = [];
     var curOffset;
+    // todo return the element to the previous place
+    var previousSibling = null;
+    var nextSibling = null;
 
     var mouseCoords = function(e) {
         return {
@@ -223,6 +227,32 @@ var moduleUiTree = function(dataJson){
             y: document.all ? window.event.clientY : e.pageY
         }
     }
+
+    var resetDraggables = function(){
+        draggables = treeRoot.getElementsByClassName("ui-tree-handle");
+    }
+
+    var addPlaceHolder = function(){        
+        
+        placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
+ //       console.log(placeHolder.parentElement);
+        if(appendToEnd){
+            window.getComputedStyle(treeRoot.firstElementChild, null).width;
+            treeRoot.firstChild.appendChild(placeHolder);
+        }else if(appendToTop && treeRoot.firstChild.firstElementChild) {
+             window.getComputedStyle(treeRoot.firstElementChild, null).width;
+            treeRoot.firstChild.insertBefore(placeHolder, treeRoot.firstChild.firstElementChild);
+        }else {
+            placeHolder.style.width = window.getComputedStyle(curTarget, null).width;
+            curTarget.nextSibling.appendChild(placeHolder);
+        }
+        
+    };
+
+    var removePlaceHolder = function(){
+            //TODO remove placeElm
+            placeHolder.parentElement.removeChild(placeHolder);
+    };
 
     var mouseMove = function(ev) {
         ev = ev || window.event;
@@ -233,20 +263,37 @@ var moduleUiTree = function(dataJson){
                 var bounds = draggables[i].getBoundingClientRect();
                 if ( draggables[i].parentElement !== dragObject &&
                     (event.clientX >= bounds.left && event.clientX <= bounds.right) &&
-                    (event.clientY >= bounds.top && event.clientY <= bounds.bottom) ) {
+                    (event.clientY >= bounds.top - 4 && event.clientY <= bounds.bottom + 5) ) {
                         curTarget = draggables[i];
                         break;
                 }
             }
             if(!curTarget){
-                var treeEnd =  document.getElementById("tree-end").getBoundingClientRect();
-                appendToEnd = (event.clientX >= treeEnd.left && event.clientX <= treeEnd.right) &&
-                              (event.clientY >= treeEnd.top && event.clientY <= treeEnd.bottom);
-            }
+                 var rootRect = treeRoot.getBoundingClientRect();
+                 if (event.clientX >= rootRect.left && event.clientX <= rootRect.right){
+                     var offSetPlaceHolder = placeHolder.parentElement ? parseInt(placeHolder.style.height) : 0;
+                     console.log(event.clientY , offSetPlaceHolder,  rootRect.top ,event.clientY - offSetPlaceHolder)
+                     appendToEnd = (event.clientY + offSetPlaceHolder >= rootRect.bottom   && event.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
 
+
+                     if(!appendToEnd){
+                         appendToTop = (event.clientY >= rootRect.top - 120 - offSetPlaceHolder  && event.clientY - offSetPlaceHolder <= rootRect.top);
+                     }
+                 }
+
+                 if(placeHolder.parentElement && placeHolder.parentElement.parentElement !== treeRoot){
+                     removePlaceHolder();
+                 }
+                               
+            }
+            if(curTarget || (appendToEnd || appendToTop) && !placeHolder.parentElement){
+                addPlaceHolder();
+            }
+            
 
             dragObject.style.top = (mousePos.y - curOffset.top) + 'px';
             dragObject.style.left = (mousePos.x - curOffset.left) + 'px';
+            console.log(appendToEnd);
             return false;
         }
     }
@@ -265,49 +312,53 @@ var moduleUiTree = function(dataJson){
         resetlisteners(element, 'toogle-btn', 'click',toggleNode);
     }
         
-
     var mouseUp = function(ev) {
         if(dragging){
             ev = ev || window.event;
             var mousePos = mouseCoords(ev);
-            if(curTarget){
-                resetButtonListeners(originalObject);
-                if(dragObject.parentElement.childNodes.length === 1){
-
-                    var firstChild = dragObject.parentElement.previousElementSibling.firstElementChild;
-                    firstChild.parentNode.removeChild(firstChild);
-                }
-
-                dragObject.parentNode.removeChild(dragObject);
+            if(placeHolder.parentElement){
+                removePlaceHolder();
+            }
+            console.log(!appendToEnd);
+            if(curTarget && curTarget !== dragObject.parentElement.previousElementSibling){ 
                 curTarget.nextSibling.appendChild(originalObject);
                 if(curTarget.nextSibling.childElementCount === 1){
                     insertHtmlArrow(curTarget.parentElement);
-                }
-                displayJson(generateJson("tree-root"));
+                }             
             } else if (appendToEnd){
-                dragObject.parentNode.removeChild(dragObject);
-                treeRootUl.firstChild.appendChild(originalObject);
+                treeRoot.firstChild.appendChild(originalObject);
+            } else if (appendToTop){
+                treeRoot.firstChild.insertBefore(originalObject, treeRoot.firstChild.firstElementChild);
             } else {
-                console.log("out", dragObject.parentElement);
-                dragObject.parentNode.removeChild(dragObject);
                 dragObjectParent.appendChild(originalObject);
             }
+            if(dragObject.parentElement.parentElement !== treeRoot && dragObject.parentElement.childNodes.length === 1){
+                var firstChild = dragObject.parentElement.previousElementSibling.firstElementChild;
+                firstChild.parentNode.removeChild(firstChild);
+            }
+            dragObject.parentNode.removeChild(dragObject);
+            resetButtonListeners(originalObject);
             setDraggables(originalObject);
             dragging = false;
             dragObject = null;
+            appendToEnd = false;
+            appendToTop = false;
+            // the next line can be removed when not required to display the json
+            displayJson(generateJson("tree-root"));
         } else {
             clearTimeout(dragHelper);
         }
     }
 
     var enableDrag = function(){
-        originalObject = dragObject.cloneNode(true);
-
-        dragObject.style.width = window.getComputedStyle(dragObject, null).width;
-        dragObject.style.zIndex = 9999;
-        dragObject.style.position = 'absolute';
-        dragging = true;
-    }
+        if(dragObject){
+            originalObject = dragObject.cloneNode(true);
+            dragObject.style.width = window.getComputedStyle(dragObject, null).width;
+            dragObject.style.zIndex = 9999;
+            dragObject.style.position = 'absolute';
+            dragging = true;
+        }
+    };
 
     var makeDraggable = function (item) {
         if (!item) return;
@@ -316,46 +367,20 @@ var moduleUiTree = function(dataJson){
             dragObjectParent = dragObject.parentElement;
             curOffset = {top: mousePos.y - dragObject.offsetTop, left: mousePos.x - dragObject.offsetLeft };
             dragHelper = setTimeout(enableDrag, 200);
-            //return false;
         };
-    }
-
-    var mouseEnter = function(){
-        if(dragging){
-            curTarget = this;
-
-            placeHolder.style.width = window.getComputedStyle(curTarget, null).width;
-            placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
-            curTarget.nextSibling.appendChild(placeHolder);
-            // TODO create placeholder element
-    //               placeElm = angular.element($window.document.createElement(tagName));
-    //                 tdElm = angular.element($window.document.createElement('td'))
-    //                   .addClass(config.placeholderClass)
-    //                   .attr('colspan', element[0].children.length);
-    //                 placeElm.append(tdElm);
-        }
     };
 
-    var mouseLeave = function(e){
-        if(dragging){
-            //TODO remove placeElm
-            curTarget = null;
-            placeHolder.remove();
-        }
-    };
+    
 
     var setDraggables = function(element){
         var temp = element.getElementsByClassName("ui-tree-handle");
         for (var i = 0; i < temp.length; i++) {
             makeDraggable(temp[i]);
-            //temp[i].addEventListener('mouseenter', mouseEnter);
-            //temp[i].addEventListener('mouseleave', mouseLeave);
         }
         return temp;
     };
 
     var dragDrop = function() {
-        treeRoot = document.getElementById("tree-root");
         window.onmousemove = mouseMove;
         window.onmouseup = mouseUp;
         draggables  = setDraggables(treeRoot);
@@ -379,23 +404,35 @@ var moduleUiTree = function(dataJson){
          displayJson(getJson());
      }
 
+     var addNode = function(id, title){
+         var node = generateTreeNode({id: id, title: title}); 
+         node.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
+         setDraggables(node);
+         treeRoot.firstElementChild.appendChild(node);
+         resetDraggables();
+           
+         return node;    
+     }
+
      if(dataJson){
          initUiTree(dataJson);
      }
 
     return {
-        setData: initUiTree,
-        getData: getJson
+        addNode: addNode,
+        getData: getJson,
+        setData: initUiTree      
     }
 };
 
 //********************************************//
 
-
+var tree;
 // Starting point
 document.addEventListener("DOMContentLoaded", function(event) {   
-    var tree = moduleUiTree(data);
+    tree = moduleUiTree(data);
     console.log(tree.getData());
+    console.log(tree.addNode(333, "I'm a test"));
 });
 
 
