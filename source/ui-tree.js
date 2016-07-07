@@ -22,6 +22,7 @@ var moduleUiTree = function(dataJson){
 
 
     var removeTreeNode = function() {
+        editElement = false;
         var node = this.parentElement.parentElement.parentElement;
         if (node.childElementCount === 1) {
             if (node.previousElementSibling) {
@@ -68,8 +69,9 @@ var moduleUiTree = function(dataJson){
     };
 
     var getInputText = function(){
-        var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text");
+        var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text") ;
         this.parentElement.innerHTML = text;
+        console.log("text",text, text === '', this.getAttribute("data-old-text"));
         // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
         editElement = false;
@@ -77,7 +79,6 @@ var moduleUiTree = function(dataJson){
 
     var getInputTextOnEnter = function(e){
         var key = e.which || e.keyCode;
-
         if (key === 13) { 
             var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text");
             this.removeEventListener("blur", getInputText);
@@ -95,8 +96,10 @@ var moduleUiTree = function(dataJson){
         var input = createDomElement("input", "", "", {type: "text", value: text});
         input.addEventListener("blur", getInputText);
         input.addEventListener("keydown", getInputTextOnEnter);
-        input.setAttribute("data-old-text", text);    
+        input.addEventListener("dblclick", function(e){ e.stopPropagation(); return false;})
+        input.setAttribute("data-old-text", text);
         this.appendChild(input);
+        input.focus();
     };
 
 
@@ -375,6 +378,7 @@ var moduleUiTree = function(dataJson){
             dragObject = null;
             appendToEnd = false;
             appendToTop = false;
+            nextSibling = null;
             // the next line can be removed when not required to display the json
             displayJson(generateJson("tree-root"));
         } else {
