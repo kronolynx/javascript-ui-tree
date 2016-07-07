@@ -41,6 +41,7 @@ var moduleUiTree = function(dataJson){
         var element = this.parentElement;
         var Id = (+element.getAttribute("id"));
         var nodesLength = element.nextElementSibling.childElementCount;
+        // TODO replace the way the nodes are named
         var newItem = generateTreeNode({
             id: Id * 10 + nodesLength + 1,
             title: element.innerText + '.' + (nodesLength + 1)
@@ -67,32 +68,34 @@ var moduleUiTree = function(dataJson){
     };
 
     var getInputText = function(){
-        var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'') || this.getAttribute("data-old-text");
+        var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text");
         this.parentElement.innerHTML = text;
         // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
+        editElement = false;
     }
 
     var getInputTextOnEnter = function(e){
         var key = e.which || e.keyCode;
 
         if (key === 13) { 
-            var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'') || this.getAttribute("data-old-text");
+            var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text");
             this.removeEventListener("blur", getInputText);
             this.parentElement.innerHTML = text;
         }
         // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
+        editElement = false;
     }
 
     var nodeEditText = function(){
+        editElement = true;
         var text = this.innerText;
         this.innerHTML = "";
         var input = createDomElement("input", "", "", {type: "text", value: text});
         input.addEventListener("blur", getInputText);
-        input.addEventListener("keypress", getInputTextOnEnter);
-        input.setAttribute("data-old-text", text);
-        
+        input.addEventListener("keydown", getInputTextOnEnter);
+        input.setAttribute("data-old-text", text);    
         this.appendChild(input);
     };
 
@@ -248,6 +251,7 @@ var moduleUiTree = function(dataJson){
     var dragging = false;
     var draggables = [];
     var curOffset;
+    var editElement = false;
     // todo return the element to the previous place
     var previousSibling = null;
     var nextSibling = null;
@@ -299,7 +303,7 @@ var moduleUiTree = function(dataJson){
             if(!curTarget){
                  var rootRect = treeRoot.getBoundingClientRect();
                  if (event.clientX >= rootRect.left && event.clientX <= rootRect.right){
-                     var offSetPlaceHolder = placeHolder.parentElement ? parseInt(placeHolder.style.height) : 0;
+                     var offSetPlaceHolder = placeHolder.parentElement ? parseInt(dragObject.firstElementChild.style.height) : 0;
                      appendToEnd = (event.clientY + offSetPlaceHolder >= rootRect.bottom   && event.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
 
 
@@ -379,7 +383,7 @@ var moduleUiTree = function(dataJson){
     }
 
     var enableDrag = function(){
-        if(dragObject){
+        if(dragObject && !editElement){
             originalObject = dragObject.cloneNode(true);
             nextSibling = dragObject.nextElementSibling;
             dragObject.style.width = window.getComputedStyle(dragObject, null).width;
