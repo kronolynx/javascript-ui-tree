@@ -71,7 +71,6 @@ var moduleUiTree = function(dataJson){
     var getInputText = function(){
         var text = (this.value).replace(/[\\\"\'<\>\}\{\[\]\`\/]/gi,'').trim() || this.getAttribute("data-old-text") ;
         this.parentElement.innerHTML = text;
-        console.log("text",text, text === '', this.getAttribute("data-old-text"));
         // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
         editElement = false;
@@ -220,18 +219,18 @@ var moduleUiTree = function(dataJson){
      * @param   [_events] json with the events or attributes to add e.g: {onclick : "alert("click")", data-somedata: "some data"}
      * @return html element
      */
-    var createDomElement = function(_tag, _id, _class, _events) {
-        var element = document.createElement(_tag);
-        if (_id) {
-            element.setAttribute("id", _id);
+    var createDomElement = function(tag, id, elementClass, propertiesOrEvents) {
+        var element = document.createElement(tag);
+        if (id) {
+            element.setAttribute("id", id);
         }
-        if (_class) {
-            element.setAttribute("class", _class);
+        if (elementClass) {
+            element.setAttribute("class", elementClass);
         }
-        if (_events) {
-            for (var key in _events) {
-                if (_events.hasOwnProperty(key)) {
-                    element.setAttribute(key, _events[key]);
+        if (propertiesOrEvents) {
+            for (var key in propertiesOrEvents) {
+                if (propertiesOrEvents.hasOwnProperty(key)) {
+                    element.setAttribute(key, propertiesOrEvents[key]);
                 }
             }
         }
@@ -297,8 +296,8 @@ var moduleUiTree = function(dataJson){
             for(var i = 0; i < draggables.length; i++){
                 var bounds = draggables[i].getBoundingClientRect();
                 if ( draggables[i].parentElement !== dragObject &&
-                    (event.clientX >= bounds.left && event.clientX <= bounds.right) &&
-                    (event.clientY >= bounds.top - 4 && event.clientY <= bounds.bottom + 5) ) {
+                    (ev.clientX >= bounds.left && ev.clientX <= bounds.right) &&
+                    (ev.clientY >= bounds.top - 4 && ev.clientY <= bounds.bottom + 5) ) {
                         curTarget = draggables[i];
                         break;
                 }
@@ -329,10 +328,10 @@ var moduleUiTree = function(dataJson){
         }
     }
     
-    var resetlisteners = function(_element, _class, _event, _fn){
-        var temp = _element.getElementsByClassName(_class);
+    var resetlisteners = function(element, elementClass, event, fn){
+        var temp = element.getElementsByClassName(elementClass);
         for(var i = 0; i < temp.length; i++){
-            temp[i].addEventListener(_event, _fn);
+            temp[i].addEventListener(event, fn);
         }
         return temp;
     }
@@ -469,7 +468,7 @@ var tree;
 document.addEventListener("DOMContentLoaded", function(event) {   
     tree = moduleUiTree(data);
     console.log(tree.getData());
-    console.log(tree.addNode(333, "I'm a test"));
+    //console.log(tree.addNode(333, "I'm a test"));
 });
 
 
