@@ -79,4 +79,5 @@ li{
 
 .text-edit {
     width: 100%;
+    cursor:pointer;
 }

@@ -45,6 +45,7 @@ var moduleUiTree = function(dataJson){
         // TODO replace the way the nodes are named
         var newItem = generateTreeNode({
             id: Id * 10 + nodesLength + 1,
+            //TODO replace me to change the name of the new node
             title: element.innerText + '.' + (nodesLength + 1)
         });
         newItem.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
@@ -54,7 +55,7 @@ var moduleUiTree = function(dataJson){
         }
         makeDraggable(newItem.firstChild);
         resetDraggables();
-        
+        // the next line can be removed as it's to display the json
         displayJson(generateJson("tree-root"));
     };
 
@@ -422,6 +423,7 @@ var moduleUiTree = function(dataJson){
         draggables  = setDraggables(treeRoot);
     };
 
+    // this function can be removed if the json is not going to be visible
     var displayJson = function(json) {
         var test = JSON.stringify(json, null, 2);
         var displayJson = document.getElementById("json-code");
@@ -436,19 +438,26 @@ var moduleUiTree = function(dataJson){
      var initUiTree = function(json){
          setUiTree(json);
          dragDrop();
-         // the next line can be removed 
+         // the next line can be removed as it's to display the json
          displayJson(getJson());
      }
 
      var addNode = function(id, title){
+         var rootChildCount = treeRoot.firstElementChild.childElementCount;
+         id = id || rootChildCount + 11;
+         title = title || 'Node1.' + (rootChildCount + 1);
          var node = generateTreeNode({id: id, title: title}); 
          node.appendChild(createDomElement("ul", "", "ui-tree-nodes"));
          setDraggables(node);
          treeRoot.firstElementChild.appendChild(node);
          resetDraggables();
+
+         // the next line can be removed as it's to display the json
+         displayJson(getJson());
            
          return node;    
      }
+
 
      if(dataJson){
          initUiTree(dataJson);
@@ -469,6 +478,11 @@ document.addEventListener("DOMContentLoaded", function(event) {
     tree = moduleUiTree(data);
     console.log(tree.getData());
     //console.log(tree.addNode(333, "I'm a test"));
+
+    var btnNewNode = document.getElementById("new-node");
+    btnNewNode.addEventListener('click', function(){
+        tree.addNode();
+    });
 });
 
 
