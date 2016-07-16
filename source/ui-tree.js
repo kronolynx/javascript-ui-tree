@@ -463,6 +463,16 @@ var moduleUiTree = function(dataJson){
          initUiTree(dataJson);
      }
 
+    // btn to add new node
+    (function(){
+        var btnNewNode = document.getElementById("new-node");
+        if(btnNewNode){
+            btnNewNode.addEventListener('click', function(){
+                tree.addNode();
+            });
+        }
+    })();
+
     return {
         addNode: addNode,
         getData: getJson,
@@ -478,11 +488,6 @@ document.addEventListener("DOMContentLoaded", function(event) {
     tree = moduleUiTree(data);
     console.log(tree.getData());
     //console.log(tree.addNode(333, "I'm a test"));
-
-    var btnNewNode = document.getElementById("new-node");
-    btnNewNode.addEventListener('click', function(){
-        tree.addNode();
-    });
 });
 
 
