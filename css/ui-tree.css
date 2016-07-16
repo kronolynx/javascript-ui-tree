@@ -69,7 +69,7 @@ tr.ui-tree-empty {
     box-sizing: border-box;
 }
 
-li{
+#tree-root li{
     list-style-type: none;
 }
 
