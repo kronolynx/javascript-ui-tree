@@ -309,12 +309,12 @@ var moduleUiTree = function(dataJson){
             }
             if(!curTarget){
                  var rootRect = treeRoot.getBoundingClientRect();
-                 if (event.clientX >= rootRect.left && event.clientX <= rootRect.right){
+                 if (ev.clientX >= rootRect.left && ev.clientX <= rootRect.right){
                      var offSetPlaceHolder = !!placeHolder.parentElement ? parseInt(window.getComputedStyle(placeHolder, null).height) : 0;
-                     appendToEnd = (event.clientY + offSetPlaceHolder >= rootRect.bottom   && event.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
+                     appendToEnd = (ev.clientY + offSetPlaceHolder >= rootRect.bottom   && ev.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
 
                      if(!appendToEnd){
-                         appendToTop = (event.clientY >= rootRect.top - 120 - offSetPlaceHolder  && event.clientY - offSetPlaceHolder <= rootRect.top);
+                         appendToTop = (ev.clientY >= rootRect.top - 120 - offSetPlaceHolder  && ev.clientY - offSetPlaceHolder <= rootRect.top);
                      }
                  }
 
