@@ -270,15 +270,19 @@ var moduleUiTree = function(dataJson){
         draggables = treeRoot.getElementsByClassName("ui-tree-handle");
     }
 
-    var addPlaceHolder = function(){            
-        placeHolder.style.height = window.getComputedStyle(dragObject, null).height;
+    var addPlaceHolder = function(){  
+        placeHolder.style.height = window.getComputedStyle(dragObject, null).height;          
+        
         if(appendToEnd){
-            window.getComputedStyle(treeRoot.firstElementChild, null).width;
+            //placeHolder.style.height = window.getComputedStyle(dragObject.firstElementChild, null).height;
+            //window.getComputedStyle(treeRoot.firstElementChild, null).width;
             treeRoot.firstChild.appendChild(placeHolder);
         }else if(appendToTop && treeRoot.firstChild.firstElementChild) {
-             window.getComputedStyle(treeRoot.firstElementChild, null).width;
+            //placeHolder.style.height =  window.getComputedStyle(dragObject.firstElementChild, null).height;
+             //window.getComputedStyle(treeRoot.firstElementChild, null).width;
             treeRoot.firstChild.insertBefore(placeHolder, treeRoot.firstChild.firstElementChild);
         }else {
+            
             placeHolder.style.width = window.getComputedStyle(curTarget, null).width;
             curTarget.nextSibling.appendChild(placeHolder);
         }
@@ -306,9 +310,8 @@ var moduleUiTree = function(dataJson){
             if(!curTarget){
                  var rootRect = treeRoot.getBoundingClientRect();
                  if (event.clientX >= rootRect.left && event.clientX <= rootRect.right){
-                     var offSetPlaceHolder = placeHolder.parentElement ? parseInt(dragObject.firstElementChild.style.height) : 0;
+                     var offSetPlaceHolder = !!placeHolder.parentElement ? parseInt(window.getComputedStyle(placeHolder, null).height) : 0;
                      appendToEnd = (event.clientY + offSetPlaceHolder >= rootRect.bottom   && event.clientY <= rootRect.bottom  + 120 + offSetPlaceHolder);
-
 
                      if(!appendToEnd){
                          appendToTop = (event.clientY >= rootRect.top - 120 - offSetPlaceHolder  && event.clientY - offSetPlaceHolder <= rootRect.top);
@@ -317,8 +320,7 @@ var moduleUiTree = function(dataJson){
 
                  if(placeHolder.parentElement && placeHolder.parentElement.parentElement !== treeRoot){
                      removePlaceHolder();
-                 }
-                               
+                 }                      
             }
             if(curTarget || (appendToEnd || appendToTop) && !placeHolder.parentElement){
                 addPlaceHolder();
@@ -458,12 +460,12 @@ var moduleUiTree = function(dataJson){
          return node;    
      }
 
-
+     // check if data was passed when the module was created and initializes the tree
      if(dataJson){
          initUiTree(dataJson);
      }
 
-    // btn to add new node
+    // btn to add new node the id must be "new-node"
     (function(){
         var btnNewNode = document.getElementById("new-node");
         if(btnNewNode){
@@ -474,9 +476,9 @@ var moduleUiTree = function(dataJson){
     })();
 
     return {
-        addNode: addNode,
-        getData: getJson,
-        setData: initUiTree      
+        addNode: addNode, //add new node to the tree
+        getData: getJson, // returns the a json with the node tree
+        setData: initUiTree // initializes the tree   
     }
 };
 
