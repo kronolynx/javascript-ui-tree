@@ -274,8 +274,10 @@ var moduleUiTree = function(dataJson){
         placeHolder.style.height = window.getComputedStyle(dragObject, null).height;          
         
         if(appendToEnd){
+            placeHolder.style.width = window.getComputedStyle(treeRoot.firstElementChild, null).width;
             treeRoot.firstChild.appendChild(placeHolder);
         }else if(appendToTop && treeRoot.firstChild.firstElementChild) {
+            placeHolder.style.width = window.getComputedStyle(treeRoot.firstElementChild, null).width;
             treeRoot.firstChild.insertBefore(placeHolder, treeRoot.firstChild.firstElementChild);
         }else {
             
